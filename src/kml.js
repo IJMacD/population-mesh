@@ -1,5 +1,9 @@
 import { calculateDistance } from "./calculateDistance";
 
+/**
+ * @typedef {import("./geoJSON").OverpassElement} OverpassElement
+ */
+
 export function generateKML (layers) {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -57,8 +61,8 @@ export function generateKML (layers) {
  *
  * @param {{
  *  label: string,
- *  points?: import("./App").OverpassElement[],
- *  lines?: [import("./App").OverpassElement, import("./App").OverpassElement][],
+ *  points?: OverpassElement[],
+ *  lines?: [OverpassElement, OverpassElement][],
  *  style: string
  * }} layer
  */
@@ -72,7 +76,7 @@ function generateFolder (layer) {
 }
 
 /**
- * @param {import("./App").OverpassElement} point
+ * @param {OverpassElement} point
  */
 function generatePointPlacemark (point, style) {
     return `
@@ -87,7 +91,7 @@ function generatePointPlacemark (point, style) {
 }
 
 /**
- * @param {[import("./App").OverpassElement, import("./App").OverpassElement]} line
+ * @param {[OverpassElement, OverpassElement]} line
  * @param {string} style
  */
 function generateLineStringPlacemark ([ p1, p2 ], style) {

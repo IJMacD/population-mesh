@@ -24,11 +24,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.24748737"
-     inkscape:cx="-630.39457"
-     inkscape:cy="613.48352"
+     inkscape:zoom="1.979899"
+     inkscape:cx="182.92169"
+     inkscape:cy="178.56668"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g864"
      inkscape:document-rotation="0"
      showgrid="false"
      inkscape:window-width="1500"
@@ -53,7 +53,10 @@
      inkscape:groupmode="layer"
      id="layer1">
     <g
-       id="g864">
+       id="g864"
+       inkscape:export-filename="C:\Users\doogl\code\population-mesh\public\logo192.png"
+       inkscape:export-xdpi="62.630001"
+       inkscape:export-ydpi="62.630001">
       <rect
          style="fill:#4d4d4d;fill-opacity:1;stroke:none;stroke-width:10.4157;stroke-linecap:round;stroke-linejoin:bevel"
          id="rect842"
@@ -61,7 +64,7 @@
          height="77.863098"
          x="13.909522"
          y="14.211906"
-         ry="4.3696418" />
+         ry="13.857711" />
       <g
          id="g856"
          transform="translate(0.53453906,-1.8708867)">

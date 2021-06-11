@@ -9,11 +9,15 @@
 @media (min-width: 480px) {
   .App {
     display: flex;
+    height: 100vh;
   }
 
   .Panel {
     width: 300px;
     padding: 1em;
+    overflow-y: auto;
+    height: 100%;
+    box-sizing: border-box;
   }
 
   .App > canvas {

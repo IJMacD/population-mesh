@@ -12,8 +12,13 @@ const Map = ReactMapboxGl({
 
 function App() {
   const [ places, setPlaces ] = useState([]);
-  const [ centre, setCentre ] = useState(/** @type {[number,number]} */([-3.667,56.66]));
-  const [ zoom, setZoom ] = useState(7);
+  /** @type {import('react').MutableRefObject<import('mapbox-gl').Map>} */
+  const mapRef = useRef(null);
+  const centreRef = useRef(/** @type {[number,number]} */([-3.667,56.66]));
+  const zoomRef = useRef(/** @type {[number]} */([7]));
+  const [ loadOnScroll, setLoadOnScroll ] = useState(false);
+  const [ loading, setLoading ] = useState(false);
+  const [ error, setError ] = useState(null);
 
   const [ maxVertexLength, setMaxVertexLength ] = useState(105000);
 
@@ -26,18 +31,29 @@ function App() {
   const [ showT4Nodes, setShowT4Nodes ] = useState(true);
   const [ showT4Vertices, setShowT4Vertices ] = useState(false);
 
-  const debounced = useDebouncedCallback(bounds => {
-    fetchPlaces(bounds.toArray().flat()).then(d => setPlaces(d.elements));
-  }, 5000);
+  const debounced = useDebouncedCallback(loadData, 5000);
+
+  function loadData () {
+    if (mapRef.current) {
+      fetchPlaces(mapRef.current.getBounds().toArray().flat())
+        .then(d => {
+          setPlaces(d.elements);
+          setError(null);
+        }, setError)
+        .then(() => setLoading(false));
+      setLoading(true);
+    }
+  }
 
   /**
    *
    * @param {import('mapbox-gl').Map} map
    */
   function handleSourceData (map) {
-    debounced(map.getBounds());
-    setCentre(/** @type {[number,number]} */(map.getCenter().toArray()));
-    setZoom(map.getZoom());
+    mapRef.current = map;
+    if (loadOnScroll || places.length === 0) {
+      debounced();
+    }
   }
 
   const placesT1 = showT1Nodes ? filterPlaces(places, 100000) : [];
@@ -85,7 +101,15 @@ function App() {
   return (
     <div className="App">
       <div className="Panel">
-        <Plural n={places.length} singular="Total Place" />
+        { error ?
+          <p style={{ color: "red" }}>{error.toString()}</p> :
+          <p>{ loading ? "Loading…" : <Plural n={places.length} singular="Total Place" /> }</p>
+        }
+        <label>
+          <input type="checkbox" checked={loadOnScroll} onChange={e => setLoadOnScroll(e.target.checked)} />
+          Load on pan/zoom
+        </label>
+        <button onClick={loadData}>Load now</button>
         <h2>100k+</h2>
         <label>
           <input type="checkbox" checked={showT1Nodes} onChange={e => setShowT1Nodes(e.target.checked)} />
@@ -137,8 +161,8 @@ function App() {
           width: '100vw'
         }}
         onSourceData={handleSourceData}
-        center={centre}
-        zoom={[zoom]}
+        center={centreRef.current}
+        zoom={zoomRef.current}
       >
         <GeoJSONLayer data={geoJSONT1} circlePaint={circlePaintT1} linePaint={linePaintT1} />
         <GeoJSONLayer data={geoJSONT2} circlePaint={circlePaintT2} linePaint={linePaintT2} />
@@ -170,8 +194,9 @@ function filterPlaces(places, minLimit, maxLimit = Infinity) {
  *
  * @param {Function} callback
  * @param {number} timeout
+ * @param {any[]} timeout
  */
-function useDebouncedCallback (callback, timeout = 1000) {
+function useDebouncedCallback (callback, timeout = 1000, dependencies = []) {
   let readyRef = useRef(true);
 
   return useCallback((...args) => {
@@ -180,7 +205,7 @@ function useDebouncedCallback (callback, timeout = 1000) {
       readyRef.current = false;
       setTimeout(() => readyRef.current = true, timeout);
     }
-  }, [callback, timeout]);
+  }, [...dependencies, callback, timeout]);
 }
 
 /**
@@ -195,14 +220,14 @@ function fetchPlaces (bounds) {
 /*
  * Version 1 Cache
  */
-const cache1 = {};
-function cachedFetch1 (url) {
-  if (!cache1[url]) {
-    cache1[url] = fetch(url).then(r => r.ok ? r.json() : Promise.reject(r.text()));
-  }
+// const cache = {};
+// function cachedFetch (url) {
+//   if (!cache[url]) {
+//     cache[url] = fetch(url).then(r => r.ok ? r.json() : Promise.reject(r.text()));
+//   }
 
-  return cache1[url];
-}
+//   return cache[url];
+// }
 
 /*
  * Version 2 attempts to prevent memory leaks
@@ -215,11 +240,11 @@ function cachedFetch (url) {
   if (!hit) {
     hit = {
       url,
-      result: fetch(url).then(r => r.ok ? r.json() : Promise.reject(r.text())),
+      result: fetch(url).then(r => r.ok ? r.json() : (r.status === 429 ? Promise.reject("Too many requests. Please wait a minute.") : Promise.reject("Error fetching data"))),
     };
 
     cache.unshift(hit);
-    cache.length = cacheLimit;
+    cache.length = Math.min(cacheLimit, cache.length);
   }
 
   return hit.result;

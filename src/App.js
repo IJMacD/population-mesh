@@ -1,7 +1,7 @@
 import './App.css';
 import ReactMapboxGl, { ZoomControl, ScaleControl, GeoJSONLayer } from 'react-mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
 import { createGeoJSON, createCirclePaint, createLinePaint, makeConnectors } from './geoJSON';
 
@@ -19,6 +19,7 @@ function App() {
   const [ loadOnScroll, setLoadOnScroll ] = useState(false);
   const [ loading, setLoading ] = useState(false);
   const [ error, setError ] = useState(null);
+  const [ mapLoaded, setMapLoaded ] = useState(false);
 
   const [ maxVertexLength, setMaxVertexLength ] = useState(105000);
 
@@ -45,15 +46,31 @@ function App() {
     }
   }
 
-  /**
-   *
-   * @param {import('mapbox-gl').Map} map
-   */
-  function handleSourceData (map) {
-    mapRef.current = map;
-    if (loadOnScroll || places.length === 0) {
-      debounced();
+  const havePlaces = places.length > 0;
+
+  useEffect(() => {
+
+    function cb () {
+      if (loadOnScroll || !havePlaces) {
+        debounced();
+      }
     }
+
+    if (mapRef.current) {
+      mapRef.current.on("sourcedata", cb);
+
+      return () => {
+        mapRef.current.off("sourcedata", cb);
+      };
+    }
+  }, [debounced, loadOnScroll, havePlaces, mapLoaded]);
+
+  function handleSourceData (map) {
+    if (!mapRef.current) {
+      setMapLoaded(true);
+    }
+
+    mapRef.current = map;
   }
 
   const placesT1 = showT1Nodes ? filterPlaces(places, 100000) : [];
@@ -196,7 +213,7 @@ function filterPlaces(places, minLimit, maxLimit = Infinity) {
  * @param {number} timeout
  * @param {any[]} timeout
  */
-function useDebouncedCallback (callback, timeout = 1000, dependencies = []) {
+function useDebouncedCallback (callback, timeout = 1000) {
   let readyRef = useRef(true);
 
   return useCallback((...args) => {
@@ -205,7 +222,7 @@ function useDebouncedCallback (callback, timeout = 1000, dependencies = []) {
       readyRef.current = false;
       setTimeout(() => readyRef.current = true, timeout);
     }
-  }, [...dependencies, callback, timeout]);
+  }, [callback, timeout]);
 }
 
 /**

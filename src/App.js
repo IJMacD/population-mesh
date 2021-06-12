@@ -249,7 +249,7 @@ function useDebouncedCallback (callback, timeout = 1000) {
  */
 function fetchPlaces (bounds) {
   const bbox = bounds.map(b => b.toFixed(3)).join(",")
-  const url = `https://overpass-api.de/api/interpreter?data=[out:json][bbox];(node[population];-node[place=country];);out;&bbox=${bbox}`;
+  const url = `https://overpass-api.de/api/interpreter?data=[out:json][bbox];(node[population];-node[place~"^country|state$"];);out;&bbox=${bbox}`;
   return cachedFetch(url);
 }
 

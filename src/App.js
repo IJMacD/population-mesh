@@ -34,15 +34,15 @@ function App() {
   const [ mapLoaded, setMapLoaded ] = useState(false);
 
   const [ showT1Nodes, setShowT1Nodes ] = useSavedState("POPMESH_NODES_T1", true, false);
-  const [ showT1Vertices, setShowT1Vertices ] = useSavedState("POPMESH_VERTICES_T1", false, false);
+  const [ showT1Vertices, setShowT1Vertices ] = useSavedState("POPMESH_VERTICES_T1", true, false);
   const [ maxT1VertexLength, setMaxT1VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T1", 105000, false);
 
   const [ showT2Nodes, setShowT2Nodes ] = useSavedState("POPMESH_NODES_T2", true, false);
-  const [ showT2Vertices, setShowT2Vertices ] = useSavedState("POPMESH_VERTICES_T2", false, false);
+  const [ showT2Vertices, setShowT2Vertices ] = useSavedState("POPMESH_VERTICES_T2", true, false);
   const [ maxT2VertexLength, setMaxT2VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T2", 100000, false);
 
   const [ showT3Nodes, setShowT3Nodes ] = useSavedState("POPMESH_NODES_T3", true, false);
-  const [ showT3Vertices, setShowT3Vertices ] = useSavedState("POPMESH_VERTICES_T3", false, false);
+  const [ showT3Vertices, setShowT3Vertices ] = useSavedState("POPMESH_VERTICES_T3", true, false);
   const [ maxT3VertexLength, setMaxT3VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T3", 95000, false);
 
   const [ showT4Nodes, setShowT4Nodes ] = useSavedState("POPMESH_NODES_T4", true, false);

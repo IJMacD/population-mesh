@@ -1,4 +1,3 @@
-import { calculateDistance } from './calculateDistance';
 
 const tierColours = ['#00FFFF', '#029ACF', '#007FFF', '#0000CC'];
 export function createCirclePaint(tier) {
@@ -72,22 +71,3 @@ export function createGeoJSON(places, connectors) {
   };
 }
 
-/**
- * @param {import('./geoJSON').OverpassElement[]} places
- */
-export function makeConnectors (places, maxVertexLength) {
-  const out = [];
-
-  for (const p1 of places) {
-    for (const p2 of places) {
-      if (p1.id < p2.id) {
-        const dist = calculateDistance(p1, p2);
-        if (dist < maxVertexLength) {
-          out.push([p1, p2]);
-        }
-      }
-    }
-  }
-
-  return out;
-}

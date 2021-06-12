@@ -3,7 +3,7 @@ import ReactMapboxGl, { ZoomControl, ScaleControl } from 'react-mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
-import { makeConnectors } from './geoJSON';
+import { filterPlaces, makeConnectors } from "./calc";
 import useSavedState from './useSavedState';
 import { Tier } from './Tier';
 import { Plural } from './Plural';
@@ -98,13 +98,13 @@ function App() {
   const connectorsT1 = showT1Vertices ? makeConnectors(placesT1, maxT1VertexLength) : [];
 
   const placesT2 = filterPlaces(places, 50000, 100000);
-  const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxT2VertexLength) : [];
+  const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxT2VertexLength, connectorsT1) : [];
 
   const placesT3 = filterPlaces(places, 10000, 50000);
-  const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength) : [];
+  const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength, [...connectorsT1, ...connectorsT2]) : [];
 
   const placesT4 = filterPlaces(places, 5000, 10000);
-  const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength) : [];
+  const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength, [...connectorsT1, ...connectorsT2, ...connectorsT3]) : [];
 
   function handleDownload () {
     const layers = [];
@@ -210,15 +210,6 @@ function App() {
 }
 
 export default App;
-
-/**
- * @param {import('./geoJSON').OverpassElement[]} places
- * @param {number} minLimit
- * @param {number} [maxLimit]
- */
-function filterPlaces(places, minLimit, maxLimit = Infinity) {
-  return places.filter(place => minLimit <= +place.tags.population && +place.tags.population < maxLimit);
-}
 
 /**
  *

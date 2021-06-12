@@ -1,4 +1,4 @@
-import { calculateDistance } from "./calculateDistance";
+import { calculateDistance } from "./calc";
 
 /**
  * @typedef {import("./geoJSON").OverpassElement} OverpassElement

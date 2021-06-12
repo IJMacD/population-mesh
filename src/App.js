@@ -3,11 +3,11 @@ import ReactMapboxGl, { ZoomControl, ScaleControl } from 'react-mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
-import { filterPlaces, makeConnectors } from "./calc";
+import { connectorsExcept, filterPlaces, makeConnectors, narrowAngleOptimise } from "./calc";
 import useSavedState from './useSavedState';
 import { Tier } from './Tier';
 import { Plural } from './Plural';
-import { TierControls } from './TierControls.js';
+import { TierControls } from './TierControls';
 
 const Map = ReactMapboxGl({
   accessToken:
@@ -20,6 +20,8 @@ const centreZoom = getLocalStorageJSON("POPMESH_CENTRE_ZOOM");
 const initialCentre = centreZoom ? centreZoom.slice(0,2) : [-3.667,56.66];
 /** @type {[number]} */
 const initialZoom = centreZoom ? centreZoom.slice(2) : [7];
+
+const excludeHigherTiers = true;
 
 function App() {
   const [ places, setPlaces ] = useState([]);
@@ -37,15 +39,17 @@ function App() {
 
   const [ showT2Nodes, setShowT2Nodes ] = useSavedState("POPMESH_NODES_T2", true, false);
   const [ showT2Vertices, setShowT2Vertices ] = useSavedState("POPMESH_VERTICES_T2", false, false);
-  const [ maxT2VertexLength, setMaxT2VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T2", 80000, false);
+  const [ maxT2VertexLength, setMaxT2VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T2", 100000, false);
 
   const [ showT3Nodes, setShowT3Nodes ] = useSavedState("POPMESH_NODES_T3", true, false);
   const [ showT3Vertices, setShowT3Vertices ] = useSavedState("POPMESH_VERTICES_T3", false, false);
-  const [ maxT3VertexLength, setMaxT3VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T3", 60000, false);
+  const [ maxT3VertexLength, setMaxT3VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T3", 95000, false);
 
   const [ showT4Nodes, setShowT4Nodes ] = useSavedState("POPMESH_NODES_T4", true, false);
   const [ showT4Vertices, setShowT4Vertices ] = useSavedState("POPMESH_VERTICES_T4", false, false);
-  const [ maxT4VertexLength, setMaxT4VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T4", 50000, false);
+  const [ maxT4VertexLength, setMaxT4VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T4", 90000, false);
+
+  const [ narrowAngleLimit, setNarrowAngleLimit ] = useSavedState("POPMESH_NARROW_ANGLE", 20, false);
 
   const debounced = useDebouncedCallback(loadData, 5000);
 
@@ -95,16 +99,16 @@ function App() {
   }
 
   const placesT1 = filterPlaces(places, 100000);
-  const connectorsT1 = showT1Vertices ? makeConnectors(placesT1, maxT1VertexLength) : [];
+  let connectorsT1 = showT1Vertices ? prepareConnectors(placesT1, maxT1VertexLength, narrowAngleLimit) : [];
 
   const placesT2 = filterPlaces(places, 50000, 100000);
-  const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxT2VertexLength, connectorsT1) : [];
+  let connectorsT2 = showT2Vertices ? prepareConnectors([...placesT1, ...placesT2], maxT2VertexLength, narrowAngleLimit, connectorsT1) : [];
 
   const placesT3 = filterPlaces(places, 10000, 50000);
-  const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength, [...connectorsT1, ...connectorsT2]) : [];
+  let connectorsT3 = showT3Vertices ? prepareConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength, narrowAngleLimit, [...connectorsT1, ]) : [];
 
   const placesT4 = filterPlaces(places, 5000, 10000);
-  const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength, [...connectorsT1, ...connectorsT2, ...connectorsT3]) : [];
+  let connectorsT4 = showT4Vertices ? prepareConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength, narrowAngleLimit, [...connectorsT1, ...connectorsT2, ...connectorsT3]) : [];
 
   function handleDownload () {
     const layers = [];
@@ -185,6 +189,11 @@ function App() {
           setMaxVertexLength={setMaxT4VertexLength}
         />
 
+        <h2>Options</h2>
+        <label>
+          Narrow Angle Limit (degrees)
+          <input type="number" min={0} max={180} value={narrowAngleLimit} onChange={e => setNarrowAngleLimit(e.target.valueAsNumber)} />
+        </label>
         <h2>Download</h2>
         <button onClick={handleDownload}>kml</button>
       </div>
@@ -210,6 +219,26 @@ function App() {
 }
 
 export default App;
+
+/**
+ * @param {import("./geoJSON").OverpassElement[]} places
+ * @param {number} maxVertexLength
+ * @param {number} narrowAngleLimit
+ * @param {[import("./geoJSON").OverpassElement,import("./geoJSON").OverpassElement][]} excludedConnectors
+ */
+function prepareConnectors (places, maxVertexLength, narrowAngleLimit, excludedConnectors = []) {
+  let connectors = makeConnectors(places, maxVertexLength);
+
+  if (narrowAngleLimit > 0) {
+    connectors = narrowAngleOptimise(connectors, narrowAngleLimit);
+  }
+
+  if (excludeHigherTiers) {
+    connectors = connectorsExcept(connectors, excludedConnectors);
+  }
+
+  return connectors;
+}
 
 /**
  *

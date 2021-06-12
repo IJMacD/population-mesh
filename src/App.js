@@ -4,33 +4,45 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
 import { createGeoJSON, createCirclePaint, createLinePaint, makeConnectors } from './geoJSON';
+import useSavedState from './useSavedState';
 
 const Map = ReactMapboxGl({
   accessToken:
     'pk.eyJ1IjoiaWptYWNkIiwiYSI6ImNqZ2J6dnNvYjM5Y3QzMnFkYWNybzM2bnkifQ.OE6IZdjeV6XK-NGACNu60g'
 });
 
+const centreZoom = getLocalStorageJSON("POPMESH_CENTRE_ZOOM");
+
+/** @type {[number,number]} */
+const initialCentre = centreZoom ? centreZoom.slice(0,2) : [-3.667,56.66];
+/** @type {[number]} */
+const initialZoom = centreZoom ? centreZoom.slice(2) : [7];
+
 function App() {
   const [ places, setPlaces ] = useState([]);
   /** @type {import('react').MutableRefObject<import('mapbox-gl').Map>} */
   const mapRef = useRef(null);
-  const centreRef = useRef(/** @type {[number,number]} */([-3.667,56.66]));
-  const zoomRef = useRef(/** @type {[number]} */([7]));
-  const [ loadOnScroll, setLoadOnScroll ] = useState(false);
+
+  const [ loadOnScroll, setLoadOnScroll ] = useSavedState("POPMESH_LOAD_ON_SCROLL", false);
   const [ loading, setLoading ] = useState(false);
   const [ error, setError ] = useState(null);
   const [ mapLoaded, setMapLoaded ] = useState(false);
 
-  const [ maxVertexLength, setMaxVertexLength ] = useState(105000);
+  const [ showT1Nodes, setShowT1Nodes ] = useSavedState("POPMESH_NODES_T1", true, false);
+  const [ showT1Vertices, setShowT1Vertices ] = useSavedState("POPMESH_VERTICES_T1", false, false);
+  const [ maxT1VertexLength, setMaxT1VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T1", 105000, false);
 
-  const [ showT1Nodes, setShowT1Nodes ] = useState(true);
-  const [ showT1Vertices, setShowT1Vertices ] = useState(false);
-  const [ showT2Nodes, setShowT2Nodes ] = useState(true);
-  const [ showT2Vertices, setShowT2Vertices ] = useState(false);
-  const [ showT3Nodes, setShowT3Nodes ] = useState(true);
-  const [ showT3Vertices, setShowT3Vertices ] = useState(false);
-  const [ showT4Nodes, setShowT4Nodes ] = useState(true);
-  const [ showT4Vertices, setShowT4Vertices ] = useState(false);
+  const [ showT2Nodes, setShowT2Nodes ] = useSavedState("POPMESH_NODES_T2", true, false);
+  const [ showT2Vertices, setShowT2Vertices ] = useSavedState("POPMESH_VERTICES_T2", false, false);
+  const [ maxT2VertexLength, setMaxT2VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T2", 80000, false);
+
+  const [ showT3Nodes, setShowT3Nodes ] = useSavedState("POPMESH_NODES_T3", true, false);
+  const [ showT3Vertices, setShowT3Vertices ] = useSavedState("POPMESH_VERTICES_T3", false, false);
+  const [ maxT3VertexLength, setMaxT3VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T3", 60000, false);
+
+  const [ showT4Nodes, setShowT4Nodes ] = useSavedState("POPMESH_NODES_T4", true, false);
+  const [ showT4Vertices, setShowT4Vertices ] = useSavedState("POPMESH_VERTICES_T4", false, false);
+  const [ maxT4VertexLength, setMaxT4VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T4", 50000, false);
 
   const debounced = useDebouncedCallback(loadData, 5000);
 
@@ -48,12 +60,18 @@ function App() {
 
   const havePlaces = places.length > 0;
 
+  // Need to add callback manually because react-mapbox-gl retains
+  // callback from first render.
   useEffect(() => {
-
     function cb () {
       if (loadOnScroll || !havePlaces) {
         debounced();
       }
+
+      // Use this opportunity to save centre/zoom info
+      const centre = mapRef.current.getCenter().toArray();
+      const zoom = mapRef.current.getZoom();
+      localStorage.setItem("POPMESH_CENTRE_ZOOM", JSON.stringify([ ...centre, zoom]))
     }
 
     if (mapRef.current) {
@@ -74,25 +92,25 @@ function App() {
   }
 
   const placesT1 = showT1Nodes ? filterPlaces(places, 100000) : [];
-  const connectorsT1 = showT1Vertices ? makeConnectors(placesT1, maxVertexLength) : [];
+  const connectorsT1 = showT1Vertices ? makeConnectors(placesT1, maxT1VertexLength) : [];
   const geoJSONT1 = createGeoJSON(placesT1, connectorsT1);
   const circlePaintT1 = createCirclePaint(1);
   const linePaintT1 = createLinePaint(1);
 
   const placesT2 = showT2Nodes ? filterPlaces(places, 50000, 100000) : [];
-  const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxVertexLength) : [];
+  const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxT2VertexLength) : [];
   const geoJSONT2 = createGeoJSON(placesT2, connectorsT2);
   const circlePaintT2 = createCirclePaint(2);
   const linePaintT2 = createLinePaint(2);
 
   const placesT3 = showT3Nodes ? filterPlaces(places, 10000, 50000) : [];
-  const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxVertexLength) : [];
+  const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength) : [];
   const geoJSONT3 = createGeoJSON(placesT3, connectorsT3);
   const circlePaintT3 = createCirclePaint(3);
   const linePaintT3 = createLinePaint(3);
 
   const placesT4 = showT4Nodes ? filterPlaces(places, 5000, 10000) : [];
-  const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxVertexLength) : [];
+  const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength) : [];
   const geoJSONT4 = createGeoJSON(placesT4, connectorsT4);
   const circlePaintT4 = createCirclePaint(4);
   const linePaintT4 = createLinePaint(4);
@@ -136,6 +154,10 @@ function App() {
           <input type="checkbox" checked={showT1Vertices} onChange={e => setShowT1Vertices(e.target.checked)} />
           <Plural n={connectorsT1.length} singular="Connection" />
         </label>
+        <label>
+          Max Connection Length (km)
+          <input type="number" min={0} value={maxT1VertexLength / 1000} onChange={e => setMaxT1VertexLength(e.target.valueAsNumber * 1000)} />
+        </label>
         <h2>50k - 100k</h2>
         <label>
           <input type="checkbox" checked={showT2Nodes} onChange={e => setShowT2Nodes(e.target.checked)} />
@@ -144,6 +166,10 @@ function App() {
         <label>
           <input type="checkbox" checked={showT2Vertices} onChange={e => setShowT2Vertices(e.target.checked)} />
           <Plural n={connectorsT2.length} singular="Connection" />
+        </label>
+        <label>
+          Max Connection Length (km)
+          <input type="number" min={0} value={maxT2VertexLength / 1000} onChange={e => setMaxT2VertexLength(e.target.valueAsNumber * 1000)} />
         </label>
         <h2>10k - 50k</h2>
         <label>
@@ -154,6 +180,10 @@ function App() {
           <input type="checkbox" checked={showT3Vertices} onChange={e => setShowT3Vertices(e.target.checked)} />
           <Plural n={connectorsT3.length} singular="Connection" />
         </label>
+        <label>
+          Max Connection Length (km)
+          <input type="number" min={0} value={maxT3VertexLength / 1000} onChange={e => setMaxT3VertexLength(e.target.valueAsNumber * 1000)} />
+        </label>
         <h2>5k - 10k</h2>
         <label>
           <input type="checkbox" checked={showT4Nodes} onChange={e => setShowT4Nodes(e.target.checked)} />
@@ -163,10 +193,9 @@ function App() {
           <input type="checkbox" checked={showT4Vertices} onChange={e => setShowT4Vertices(e.target.checked)} />
           <Plural n={connectorsT4.length} singular="Connection" />
         </label>
-        <h2>Options</h2>
         <label>
-          Max Connector Length (km)
-          <input type="number" min={0} value={maxVertexLength / 1000} onChange={e => setMaxVertexLength(e.target.valueAsNumber * 1000)} />
+          Max Connection Length (km)
+          <input type="number" min={0} value={maxT4VertexLength / 1000} onChange={e => setMaxT4VertexLength(e.target.valueAsNumber * 1000)} />
         </label>
         <h2>Download</h2>
         <button onClick={handleDownload}>kml</button>
@@ -178,8 +207,8 @@ function App() {
           width: '100vw'
         }}
         onSourceData={handleSourceData}
-        center={centreRef.current}
-        zoom={zoomRef.current}
+        center={initialCentre}
+        zoom={initialZoom}
       >
         <GeoJSONLayer data={geoJSONT1} circlePaint={circlePaintT1} linePaint={linePaintT1} />
         <GeoJSONLayer data={geoJSONT2} circlePaint={circlePaintT2} linePaint={linePaintT2} />
@@ -279,4 +308,19 @@ function downloadFile (filename, data) {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   });
+}
+
+/**
+ * @param {string} key
+ */
+function getLocalStorageJSON (key) {
+  const saved = localStorage.getItem(key);
+
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {}
+  }
+
+  return void 0;
 }

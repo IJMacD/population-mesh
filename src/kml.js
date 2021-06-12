@@ -70,8 +70,8 @@ function generateFolder (layer) {
     return `
     <Folder>
         <name>${layer.label}</name>
-        ${layer.points && layer.points.map(p => generatePointPlacemark(p, layer.style)).join("")}
-        ${layer.lines && layer.lines.map(l => generateLineStringPlacemark(l, layer.style)).join("")}
+        ${layer.points ? layer.points.map(p => generatePointPlacemark(p, layer.style)).join("") : ""}
+        ${layer.lines ? layer.lines.map(l => generateLineStringPlacemark(l, layer.style)).join("") : ""}
     </Folder>`;
 }
 

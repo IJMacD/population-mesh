@@ -3,7 +3,7 @@ import ReactMapboxGl, { ZoomControl, ScaleControl } from 'react-mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
-import { connectorsExcept, filterPlaces, makeConnectors, narrowAngleOptimise } from "./calc";
+import { filterPlaces, prepareConnectors } from "./calc";
 import useSavedState from './useSavedState';
 import { Tier } from './Tier';
 import { Plural } from './Plural';
@@ -102,13 +102,19 @@ function App() {
   let connectorsT1 = showT1Vertices ? prepareConnectors(placesT1, maxT1VertexLength, narrowAngleLimit) : [];
 
   const placesT2 = filterPlaces(places, 50000, 100000);
-  let connectorsT2 = showT2Vertices ? prepareConnectors([...placesT1, ...placesT2], maxT2VertexLength, narrowAngleLimit, connectorsT1) : [];
+  const cumlPlacesT2 = [...placesT1, ...placesT2];
+  const excludeConnectionsT2 = excludeHigherTiers ? connectorsT1 : [];
+  let connectorsT2 = showT2Vertices ? prepareConnectors(cumlPlacesT2, maxT2VertexLength, narrowAngleLimit, excludeConnectionsT2) : [];
 
   const placesT3 = filterPlaces(places, 10000, 50000);
-  let connectorsT3 = showT3Vertices ? prepareConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength, narrowAngleLimit, [...connectorsT1, ]) : [];
+  const cumlPlacesT3 = [...placesT1, ...placesT2, ...placesT3];
+  const excludeConnectionsT3 = excludeHigherTiers ? [...connectorsT1, ...connectorsT2] : [];
+  let connectorsT3 = showT3Vertices ? prepareConnectors(cumlPlacesT3, maxT3VertexLength, narrowAngleLimit, excludeConnectionsT3) : [];
 
   const placesT4 = filterPlaces(places, 5000, 10000);
-  let connectorsT4 = showT4Vertices ? prepareConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength, narrowAngleLimit, [...connectorsT1, ...connectorsT2, ...connectorsT3]) : [];
+  const cumlPlacesT4 = [...placesT1, ...placesT2, ...placesT3, ...placesT4];
+  const excludeConnectionsT4 = excludeHigherTiers ? [...connectorsT1, ...connectorsT2, ...connectorsT3] : [];
+  let connectorsT4 = showT4Vertices ? prepareConnectors(cumlPlacesT4, maxT4VertexLength, narrowAngleLimit, excludeConnectionsT4) : [];
 
   function handleDownload () {
     const layers = [];
@@ -219,26 +225,6 @@ function App() {
 }
 
 export default App;
-
-/**
- * @param {import("./geoJSON").OverpassElement[]} places
- * @param {number} maxVertexLength
- * @param {number} narrowAngleLimit
- * @param {[import("./geoJSON").OverpassElement,import("./geoJSON").OverpassElement][]} excludedConnectors
- */
-function prepareConnectors (places, maxVertexLength, narrowAngleLimit, excludedConnectors = []) {
-  let connectors = makeConnectors(places, maxVertexLength);
-
-  if (narrowAngleLimit > 0) {
-    connectors = narrowAngleOptimise(connectors, narrowAngleLimit);
-  }
-
-  if (excludeHigherTiers) {
-    connectors = connectorsExcept(connectors, excludedConnectors);
-  }
-
-  return connectors;
-}
 
 /**
  *

@@ -23,6 +23,26 @@ export function filterPlaces(places, minLimit = 0, maxLimit = Infinity) {
 /**
  * @param {OverpassElement[]} places
  * @param {number} maxVertexLength
+ * @param {number} narrowAngleLimit
+ * @param {[OverpassElement,OverpassElement][]} excludedConnectors
+ */
+export function prepareConnectors (places, maxVertexLength, narrowAngleLimit, excludedConnectors = []) {
+  let connectors = makeConnectors(places, maxVertexLength);
+
+  if (narrowAngleLimit > 0) {
+    connectors = narrowAngleOptimise(connectors, narrowAngleLimit);
+  }
+
+  if (excludedConnectors.length > 0) {
+    connectors = connectorsExcept(connectors, excludedConnectors);
+  }
+
+  return connectors;
+}
+
+/**
+ * @param {OverpassElement[]} places
+ * @param {number} maxVertexLength
  * @param {[OverpassElement, OverpassElement][]} [exclude]
  */
 

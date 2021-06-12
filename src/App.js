@@ -1,10 +1,13 @@
 import './App.css';
-import ReactMapboxGl, { ZoomControl, ScaleControl, GeoJSONLayer } from 'react-mapbox-gl';
+import ReactMapboxGl, { ZoomControl, ScaleControl } from 'react-mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateKML } from './kml';
-import { createGeoJSON, createCirclePaint, createLinePaint, makeConnectors } from './geoJSON';
+import { makeConnectors } from './geoJSON';
 import useSavedState from './useSavedState';
+import { Tier } from './Tier';
+import { Plural } from './Plural';
+import { TierControls } from './TierControls.js';
 
 const Map = ReactMapboxGl({
   accessToken:
@@ -91,29 +94,17 @@ function App() {
     mapRef.current = map;
   }
 
-  const placesT1 = showT1Nodes ? filterPlaces(places, 100000) : [];
+  const placesT1 = filterPlaces(places, 100000);
   const connectorsT1 = showT1Vertices ? makeConnectors(placesT1, maxT1VertexLength) : [];
-  const geoJSONT1 = createGeoJSON(placesT1, connectorsT1);
-  const circlePaintT1 = createCirclePaint(1);
-  const linePaintT1 = createLinePaint(1);
 
-  const placesT2 = showT2Nodes ? filterPlaces(places, 50000, 100000) : [];
+  const placesT2 = filterPlaces(places, 50000, 100000);
   const connectorsT2 = showT2Vertices ? makeConnectors([...placesT1, ...placesT2], maxT2VertexLength) : [];
-  const geoJSONT2 = createGeoJSON(placesT2, connectorsT2);
-  const circlePaintT2 = createCirclePaint(2);
-  const linePaintT2 = createLinePaint(2);
 
-  const placesT3 = showT3Nodes ? filterPlaces(places, 10000, 50000) : [];
+  const placesT3 = filterPlaces(places, 10000, 50000);
   const connectorsT3 = showT3Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3], maxT3VertexLength) : [];
-  const geoJSONT3 = createGeoJSON(placesT3, connectorsT3);
-  const circlePaintT3 = createCirclePaint(3);
-  const linePaintT3 = createLinePaint(3);
 
-  const placesT4 = showT4Nodes ? filterPlaces(places, 5000, 10000) : [];
+  const placesT4 = filterPlaces(places, 5000, 10000);
   const connectorsT4 = showT4Vertices ? makeConnectors([...placesT1, ...placesT2, ...placesT3, ...placesT4], maxT4VertexLength) : [];
-  const geoJSONT4 = createGeoJSON(placesT4, connectorsT4);
-  const circlePaintT4 = createCirclePaint(4);
-  const linePaintT4 = createLinePaint(4);
 
   function handleDownload () {
     const layers = [];
@@ -145,58 +136,55 @@ function App() {
           Load on pan/zoom
         </label>
         <button onClick={loadData}>Load now</button>
-        <h2>100k+</h2>
-        <label>
-          <input type="checkbox" checked={showT1Nodes} onChange={e => setShowT1Nodes(e.target.checked)} />
-          <Plural n={placesT1.length} singular="Place" />
-        </label>
-        <label>
-          <input type="checkbox" checked={showT1Vertices} onChange={e => setShowT1Vertices(e.target.checked)} />
-          <Plural n={connectorsT1.length} singular="Connection" />
-        </label>
-        <label>
-          Max Connection Length (km)
-          <input type="number" min={0} value={maxT1VertexLength / 1000} onChange={e => setMaxT1VertexLength(e.target.valueAsNumber * 1000)} />
-        </label>
-        <h2>50k - 100k</h2>
-        <label>
-          <input type="checkbox" checked={showT2Nodes} onChange={e => setShowT2Nodes(e.target.checked)} />
-          <Plural n={placesT2.length} singular="Place" />
-        </label>
-        <label>
-          <input type="checkbox" checked={showT2Vertices} onChange={e => setShowT2Vertices(e.target.checked)} />
-          <Plural n={connectorsT2.length} singular="Connection" />
-        </label>
-        <label>
-          Max Connection Length (km)
-          <input type="number" min={0} value={maxT2VertexLength / 1000} onChange={e => setMaxT2VertexLength(e.target.valueAsNumber * 1000)} />
-        </label>
-        <h2>10k - 50k</h2>
-        <label>
-          <input type="checkbox" checked={showT3Nodes} onChange={e => setShowT3Nodes(e.target.checked)} />
-          <Plural n={placesT3.length} singular="Place" />
-        </label>
-        <label>
-          <input type="checkbox" checked={showT3Vertices} onChange={e => setShowT3Vertices(e.target.checked)} />
-          <Plural n={connectorsT3.length} singular="Connection" />
-        </label>
-        <label>
-          Max Connection Length (km)
-          <input type="number" min={0} value={maxT3VertexLength / 1000} onChange={e => setMaxT3VertexLength(e.target.valueAsNumber * 1000)} />
-        </label>
-        <h2>5k - 10k</h2>
-        <label>
-          <input type="checkbox" checked={showT4Nodes} onChange={e => setShowT4Nodes(e.target.checked)} />
-          <Plural n={placesT4.length} singular="Place" />
-        </label>
-        <label>
-          <input type="checkbox" checked={showT4Vertices} onChange={e => setShowT4Vertices(e.target.checked)} />
-          <Plural n={connectorsT4.length} singular="Connection" />
-        </label>
-        <label>
-          Max Connection Length (km)
-          <input type="number" min={0} value={maxT4VertexLength / 1000} onChange={e => setMaxT4VertexLength(e.target.valueAsNumber * 1000)} />
-        </label>
+
+        <TierControls
+          label="100k+"
+          places={placesT1}
+          connectors={connectorsT1}
+          showNodes={showT1Nodes}
+          setShowNodes={setShowT1Nodes}
+          showVertices={showT1Vertices}
+          setShowVertices={setShowT1Vertices}
+          maxVertexLength={maxT1VertexLength}
+          setMaxVertexLength={setMaxT1VertexLength}
+        />
+
+        <TierControls
+          label="50k - 100k"
+          places={placesT2}
+          connectors={connectorsT2}
+          showNodes={showT2Nodes}
+          setShowNodes={setShowT2Nodes}
+          showVertices={showT2Vertices}
+          setShowVertices={setShowT2Vertices}
+          maxVertexLength={maxT2VertexLength}
+          setMaxVertexLength={setMaxT2VertexLength}
+        />
+
+        <TierControls
+          label="10k - 50k"
+          places={placesT3}
+          connectors={connectorsT3}
+          showNodes={showT3Nodes}
+          setShowNodes={setShowT3Nodes}
+          showVertices={showT3Vertices}
+          setShowVertices={setShowT3Vertices}
+          maxVertexLength={maxT3VertexLength}
+          setMaxVertexLength={setMaxT3VertexLength}
+        />
+
+        <TierControls
+          label="5k - 10k"
+          places={placesT4}
+          connectors={connectorsT4}
+          showNodes={showT4Nodes}
+          setShowNodes={setShowT4Nodes}
+          showVertices={showT4Vertices}
+          setShowVertices={setShowT4Vertices}
+          maxVertexLength={maxT4VertexLength}
+          setMaxVertexLength={setMaxT4VertexLength}
+        />
+
         <h2>Download</h2>
         <button onClick={handleDownload}>kml</button>
       </div>
@@ -210,10 +198,10 @@ function App() {
         center={initialCentre}
         zoom={initialZoom}
       >
-        <GeoJSONLayer data={geoJSONT1} circlePaint={circlePaintT1} linePaint={linePaintT1} />
-        <GeoJSONLayer data={geoJSONT2} circlePaint={circlePaintT2} linePaint={linePaintT2} />
-        <GeoJSONLayer data={geoJSONT3} circlePaint={circlePaintT3} linePaint={linePaintT3} />
-        <GeoJSONLayer data={geoJSONT4} circlePaint={circlePaintT4} linePaint={linePaintT4} />
+        <Tier places={showT1Nodes ? placesT1 : []} connectors={connectorsT1} tier={1} />
+        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
+        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
+        <Tier places={showT4Nodes ? placesT4 : []} connectors={connectorsT4} tier={4} />
         <ZoomControl />
         <ScaleControl />
       </Map>
@@ -222,10 +210,6 @@ function App() {
 }
 
 export default App;
-
-function Plural ({ n, singular, plural = null }) {
-  return <>{`${n} ${n === 1 ? singular : (plural || singular + 's')}`}</>;
-}
 
 /**
  * @param {import('./geoJSON').OverpassElement[]} places

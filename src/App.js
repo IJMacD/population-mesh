@@ -9,7 +9,8 @@ import { Tier } from './Tier';
 import { Plural } from './Plural';
 import { TierControls } from './TierControls';
 import { PopulationInspector } from './PopulationInspector';
-import { fetchPlaces } from './overpass';
+import { fetchPlaces as fetchOverpassPlaces } from './overpass';
+import { fetchNomisPlaces } from './nomis';
 
 const Map = ReactMapboxGl({
   accessToken:
@@ -25,15 +26,22 @@ const initialZoom = centreZoom ? centreZoom.slice(2) : [7];
 
 const excludeHigherTiers = true;
 
+const dataSources = [
+  { id: "osm", label: "OpenStreetMap", coverage: "World" },
+  { id: "nomis", label: "Nomis", coverage: "England and Wales" },
+];
+
 function App() {
   const [ places, setPlaces ] = useState([]);
   /** @type {import('react').MutableRefObject<import('mapbox-gl').Map>} */
   const mapRef = useRef(null);
 
-  const [ loadOnScroll, setLoadOnScroll ] = useSavedState("POPMESH_LOAD_ON_SCROLL", false);
+  const [ loadOnScroll, setLoadOnScroll ] = useSavedState("POPMESH_LOAD_ON_SCROLL", false, false);
   const [ loading, setLoading ] = useState(false);
   const [ error, setError ] = useState(null);
   const [ mapLoaded, setMapLoaded ] = useState(false);
+
+  const [ dataSourceID, setDataSourceID ] = useSavedState("POPMESH_DATA_SOURCE", dataSources[0].id, false);
 
   const [ showPopulationInspectModal, setShowPopulationInspectModal ] = useState(false);
 
@@ -56,22 +64,28 @@ function App() {
   const [ narrowAngleLimit, setNarrowAngleLimit ] = useSavedState("POPMESH_NARROW_ANGLE", 15, false);
   const [ conurbationCollapse, setConurbationCollapse ] = useSavedState("POPMESH_CONURBATION_COLLAPSE", false, false);
 
-  const debounced = useDebouncedCallback(loadData, 5000);
-
-  function loadData () {
+  const loadData = useCallback(() => {
     if (mapRef.current) {
-      const bounds = mapRef.current.getBounds().toArray().flat();
+      const bounds = /** @type {[number,number,number,number]} */(mapRef.current.getBounds().toArray().flat());
       const options = { population: true, place: ["city", "town", "village"] };
 
-      fetchPlaces(bounds, options)
-        .then(d => {
-          setPlaces(d.elements);
-          setError(null);
-        }, setError)
-        .then(() => setLoading(false));
-      setLoading(true);
+      if (dataSourceID === "osm") {
+        fetchOverpassPlaces(bounds, options)
+          .then(d => {
+            setPlaces(d.elements);
+            setError(null);
+          }, setError)
+          .then(() => setLoading(false));
+        setLoading(true);
+      } else if (dataSourceID === "nomis") {
+        fetchNomisPlaces(bounds).then(setPlaces);
+      }
     }
-  }
+  }, [dataSourceID]);
+
+  useEffect(loadData, [loadData]);
+
+  const debounced = useDebouncedCallback(loadData, 5000);
 
   // Set up keyboard listener for population inspector
   useEffect(() => {
@@ -113,10 +127,12 @@ function App() {
     }
 
     if (mapRef.current) {
-      mapRef.current.on("sourcedata", cb);
+      mapRef.current.on("moveend", cb);
+      // mapRef.current.on("sourcedata", cb);
 
       return () => {
-        mapRef.current.off("sourcedata", cb);
+        mapRef.current.off("moveend", cb);
+        // mapRef.current.off("sourcedata", cb);
       };
     }
   }, [debounced, loadOnScroll, havePlaces, mapLoaded]);
@@ -168,6 +184,14 @@ function App() {
   return (
     <div className="App">
       <div className="Panel">
+        <label>
+          <span style={{fontWeight: "bold"}}>Data Source</span>
+          <select value={dataSourceID} onChange={e => setDataSourceID(e.target.value)}>
+            {
+              dataSources.map(source => <option key={source.id} value={source.id}>{source.label} ({source.coverage})</option>)
+            }
+          </select>
+        </label>
         { error ?
           <p style={{ color: "red" }}>{error.toString()}</p> :
           ( loading ?

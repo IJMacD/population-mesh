@@ -232,10 +232,10 @@ function App() {
         center={initialCentre}
         zoom={initialZoom}
       >
-        <Tier places={showT4Nodes ? placesT4 : []} connectors={connectorsT4} tier={4} />
-        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
-        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
         <Tier places={showT1Nodes ? placesT1 : []} connectors={connectorsT1} tier={1} />
+        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
+        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
+        <Tier places={showT4Nodes ? placesT4 : []} connectors={connectorsT4} tier={4} />
         <ZoomControl />
         <ScaleControl />
       </Map>
@@ -267,8 +267,9 @@ function useDebouncedCallback (callback, timeout = 1000) {
  * @param {number[]} bounds
  */
 function fetchPlaces (bounds) {
-  const bbox = bounds.map(b => b.toFixed(3)).join(",")
-  const url = `https://overpass-api.de/api/interpreter?data=[out:json][bbox];node[population][place~"^city|town|village$"];out;&bbox=${bbox}`;
+  const bbox = bounds.map(b => b.toFixed(3)).join(",");
+  const sanityLimit = 10000;
+  const url = `https://overpass-api.de/api/interpreter?data=[out:json][bbox];node[population][place~"^city|town|village$"];out ${sanityLimit};&bbox=${bbox}`;
   return cachedFetch(url);
 }
 

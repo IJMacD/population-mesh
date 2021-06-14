@@ -42,45 +42,47 @@ export function PopulationInspector ({ bounds }) {
             <h1>Population Inspector</h1>
             { loading && <p>Loading…</p> }
             { error && <p style={{color:"red"}}>{error.toString()}</p> }
-            <div style={scrollContainerStyle}>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Population</th>
-                            <th>Links</th>
-                            <th>Wikidata</th>
-                            <th>Wikipedia</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        { data.map(place => (
-                            <tr key={place.id}>
-                                <td>{place.tags.name}</td>
-                                <td>{place.tags.place}</td>
-                                <td>
-                                    <PopulationIndicator population={+place.tags.population||0} />
-                                    {place.tags.population||""}
-                                </td>
-                                <td>
-                                    <a href={`https://www.openstreetmap.org/#map=12/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Map</a>{' '}
-                                    <a href={`https://www.openstreetmap.org/edit#map=20/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Edit</a>{' '}
-                                    <a href={`https://www.openstreetmap.org/node/${place.id}`} target="_blank" rel="noreferrer">View</a>{' '}
-                                    <a href={`https://en.wikipedia.org/wiki/${place.tags.name}`} target="_blank" rel="noreferrer">Wikipedia</a>{' '}
-                                    { place.tags.wikidata && <a href={`https://www.wikidata.org/wiki/${place.tags.wikidata}`} target="_blank" rel="noreferrer">Wikidata</a> }
-                                </td>
-                                <td>
-                                    { !place.tags.population && place.tags.wikidata && <WikiData id={place.tags.wikidata} claim={WIKIDATA_CLAIMS.population} /> }
-                                </td>
-                                <td>
-                                    { !place.tags.population && <WikipediaPopulation name={place.tags.wikipedia?.replace(/[a-z]+:/, "") || place.tags.name} /> }
-                                </td>
+            { data.length > 0 &&
+                <div style={scrollContainerStyle}>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Population</th>
+                                <th>Links</th>
+                                <th>Wikidata</th>
+                                <th>Wikipedia</th>
                             </tr>
-                        )) }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            { data.map(place => (
+                                <tr key={place.id}>
+                                    <td>{place.tags.name}</td>
+                                    <td>{place.tags.place}</td>
+                                    <td>
+                                        <PopulationIndicator population={+place.tags.population||0} />
+                                        {place.tags.population||""}
+                                    </td>
+                                    <td>
+                                        <a href={`https://www.openstreetmap.org/#map=12/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Map</a>{' '}
+                                        <a href={`https://www.openstreetmap.org/edit#map=20/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Edit</a>{' '}
+                                        <a href={`https://www.openstreetmap.org/node/${place.id}`} target="_blank" rel="noreferrer">View</a>{' '}
+                                        <a href={`https://en.wikipedia.org/wiki/${place.tags.name}`} target="_blank" rel="noreferrer">Wikipedia</a>{' '}
+                                        { place.tags.wikidata && <a href={`https://www.wikidata.org/wiki/${place.tags.wikidata}`} target="_blank" rel="noreferrer">Wikidata</a> }
+                                    </td>
+                                    <td>
+                                        { !place.tags.population && place.tags.wikidata && <WikiData id={place.tags.wikidata} claim={WIKIDATA_CLAIMS.population} /> }
+                                    </td>
+                                    <td>
+                                        { !place.tags.population && <WikipediaPopulation name={place.tags.wikipedia?.replace(/[a-z]+:/, "") || place.tags.name} /> }
+                                    </td>
+                                </tr>
+                            )) }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </section>
     )
 }
@@ -164,7 +166,7 @@ function WikipediaPopulation ({ name }) {
 
             const ref = sanitiseRef(params.population_ref?.wt);
 
-            return <p>{params.population.wt} <span style={{color:"#666",fontSize:"0.8em"}}>{ref}</span></p>;
+            return <p>{params.population.wt} {params.population_ref?.wt.includes("Parish") && <span style={{color:"#FF0000",fontSize:"0.8em"}}>Parish</span> } <span style={{color:"#666",fontSize:"0.8em"}}>{ref}</span></p>;
         } catch (e) {
             console.error(e);
             return <p style={{color:"red"}}>Error parsing</p>;

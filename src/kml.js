@@ -117,7 +117,7 @@ function generatePointPlacemark (point, style) {
 function generateLineStringPlacemark ([ p1, p2 ], style) {
     return `
         <Placemark>
-            <name>From ${p1.tags.name} to ${p2.tags.name}</name>
+            <name>${p1.tags.name} to ${p2.tags.name}</name>
             <description>Distance: ${calculateDistance(p1, p2).toFixed(0)}m</description>
             <styleUrl>#${style}</styleUrl>
             <LineString>

@@ -30,7 +30,7 @@ export function prepareConnectors (places, maxVertexLength, narrowAngleLimit, ex
   let connectors = makeConnectors(places, maxVertexLength);
 
   if (narrowAngleLimit > 0) {
-    connectors = narrowAngleOptimise(connectors, narrowAngleLimit);
+    connectors = narrowAngleOptimisation(connectors, narrowAngleLimit);
   }
 
   if (excludedConnectors.length > 0) {
@@ -89,7 +89,7 @@ function includesPair(place1, place2, list) {
  * @param {number} minAngle in degrees
  * @returns {T[]}
  */
-export function narrowAngleOptimise (connectors, minAngle = 1) {
+function narrowAngleOptimisation (connectors, minAngle = 1) {
   if (minAngle <= 0) {
     return connectors;
   }
@@ -222,4 +222,107 @@ function joinLines (segmentA, segmentB) {
   if (segmentA[1] === segmentB[1]) {
     return [segmentA[0], segmentA[1], segmentB[0]];
   }
+}
+
+/**
+ * @param {OverpassElement[]} places
+ * @param {number} distanceLimit
+ */
+export function collapseConurbations (places, distanceLimit) {
+  // Sort by population high to low to ensure smaller places are
+  // absorbed into larger ones.
+  places.sort(placePopulationComparatorDescending);
+
+  /** @type {OverpassElement[]} */
+  const out = [];
+
+  outer_loop:
+  for (const p1 of places) {
+
+    for (let i = 0; i < out.length; i++) {
+      const p2 = out[i];
+
+      const dist = calculateDistance(p1, p2);
+
+      if (dist < distanceLimit) {
+        // Replace earlier place
+        out[i] = mergePlaces(p1, p2);;
+
+        // Continue to next place
+        continue outer_loop;
+
+      }
+    }
+
+    // Add to output if we didn't find any nearby places
+    out.push(p1);
+  }
+
+  return out;
+}
+
+/**
+ * @param {OverpassElement} a
+ * @param {OverpassElement} b
+ */
+// eslint-disable-next-line
+function placePopulationComparator (a, b) {
+  return +a.tags.population - +b.tags.population;
+}
+
+/**
+ * @param {OverpassElement} a
+ * @param {OverpassElement} b
+ */
+function placePopulationComparatorDescending (a, b) {
+  return +b.tags.population - +a.tags.population;
+}
+
+/**
+ * @param {OverpassElement} p1
+ * @param {OverpassElement} p2
+ */
+function mergePlaces(p1, p2) {
+  const name = mergeName(p1, p2);
+  const pop1 = +p1.tags.population;
+  const pop2 = +p2.tags.population;
+  const totalPop = pop1 + pop2;
+  const population = totalPop.toString();
+  const t = pop2 / totalPop;
+
+  // Create merged place
+  /** @type {OverpassElement} */
+  const newPlace = {
+    id: Math.min(p1.id, p2.id),
+    lat: linearInterpolation(p1.lat, p2.lat, t),
+    lon: linearInterpolation(p1.lon, p2.lon, t),
+    type: "node",
+    tags: {
+      name,
+      population,
+    },
+  };
+  return newPlace;
+}
+
+/**
+ * @param {OverpassElement} p1
+ * @param {OverpassElement} p2
+ */
+function mergeName(p1, p2) {
+  const n = +p1.tags.population > +p2.tags.population ?
+    `${p1.tags.name} and ${p2.tags.name}` :
+    `${p2.tags.name} and ${p1.tags.name}`;
+
+  // If there are two 'and' then replace the first one with a comma.
+  return / and .+ and /.test(n) ? n.replace(/ and /, ", ") : n;
+}
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t
+ */
+function linearInterpolation (a, b, t) {
+  return a + t * (b - a);
 }

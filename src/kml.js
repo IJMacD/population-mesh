@@ -11,21 +11,41 @@ export function generateKML (layers) {
         <Style id="tier1_places">
             <IconStyle>
                 <color>ffffff00</color>
+                <scale>2</scale>
+                <Icon>
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href>
+                </Icon>
+                <hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
             </IconStyle>
         </Style>
         <Style id="tier2_places">
             <IconStyle>
                 <color>ffcf9a02</color>
+                <scale>1.6666</scale>
+                <Icon>
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href>
+                </Icon>
+                <hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
             </IconStyle>
         </Style>
         <Style id="tier3_places">
             <IconStyle>
                 <color>ffff7f00</color>
+                <scale>1.25</scale>
+                <Icon>
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href>
+                </Icon>
+                <hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
             </IconStyle>
         </Style>
         <Style id="tier4_places">
             <IconStyle>
                 <color>ffcc0000</color>
+                <scale>1</scale>
+                <Icon>
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href>
+                </Icon>
+                <hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
             </IconStyle>
         </Style>
         <Style id="tier1_connectors">
@@ -100,11 +120,11 @@ function generateLineStringPlacemark ([ p1, p2 ], style) {
             <name>From ${p1.tags.name} to ${p2.tags.name}</name>
             <description>Distance: ${calculateDistance(p1, p2).toFixed(0)}m</description>
             <styleUrl>#${style}</styleUrl>
-            <Point>
+            <LineString>
                 <coordinates>
                     ${p1.lon},${p1.lat},0
                     ${p2.lon},${p2.lat},0
                 </coordinates>
-            </Point>
+            </LineString>
         </Placemark>`;
 }

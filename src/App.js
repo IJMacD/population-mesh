@@ -213,10 +213,10 @@ function App() {
         center={initialCentre}
         zoom={initialZoom}
       >
-        <Tier places={showT1Nodes ? placesT1 : []} connectors={connectorsT1} tier={1} />
-        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
-        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
         <Tier places={showT4Nodes ? placesT4 : []} connectors={connectorsT4} tier={4} />
+        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
+        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
+        <Tier places={showT1Nodes ? placesT1 : []} connectors={connectorsT1} tier={1} />
         <ZoomControl />
         <ScaleControl />
       </Map>

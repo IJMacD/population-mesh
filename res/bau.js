@@ -14,13 +14,17 @@ const list = expandList(allBUAs);
 
 // console.log(list.length + " Built up areas");
 // console.log(list);
+run();
 
-// fetchAllBuiltUpAreas();
-// fetchBoundaries();
-// calculateAreaAndCentre();
-generateJSON();
+async function run () {
+    // await fetchAllBuiltUpAreas();
+    // await fetchAllBuiltUpAreas(true);
+    // await fetchBoundaries();
+    // await calculateAreaAndCentre();
+    generateJSON();
+}
 
-async function fetchAllBuiltUpAreas () {
+async function fetchAllBuiltUpAreas (update = false) {
     const fields = "geography,date_name,geography_name,geography_code,obs_value";
     const data = await fetch(`https://www.nomisweb.co.uk/api/v01/dataset/NM_144_1.data.csv?date=latest&geography=${allBUAs}&rural_urban=0&cell=0&measures=20100&select=${fields}`);
 
@@ -32,15 +36,19 @@ async function fetchAllBuiltUpAreas () {
 
     console.log(lines.length + " built up areas fetched");
 
-    const stmt_bua = db.prepare("INSERT INTO built_up_areas (id, geography_code, name) VALUES ($id, $code, $name)");
+    const stmt_bua = db.prepare(update ?
+        "UPDATE built_up_areas SET geography_code = $code, name = $name WHERE id = $id" :
+        "INSERT INTO built_up_areas (id, geography_code, name) VALUES ($id, $code, $name)");
 
-    const stmt_census = db.prepare("INSERT INTO census (bua_id, year, population) VALUES ($id, $date, $population)");
+    const stmt_census = db.prepare(update ?
+        "UPDATE census SET population = $population WHERE bua_id = $id AND year = $date" :
+        "INSERT INTO census (bua_id, year, population) VALUES ($id, $date, $population)");
 
     db.serialize(() => {
         db.exec("BEGIN TRANSACTION");
 
         for (const line of lines) {
-            const fields = line.split(",").map(f => f.replace(/^"|"$/g, ""));
+            const fields = getFields(line);
 
             const $id = +fields[0];
 
@@ -57,12 +65,42 @@ async function fetchAllBuiltUpAreas () {
             stmt_census.run({ $id, $date, $population });
 
             // console.log({ $id, $date, $name, $code, $population });
+            // return;
         }
 
         db.exec("COMMIT", () => console.log("Finished"));
 
         console.log("Writing to database");
     });
+}
+
+/**
+ *
+ * @param {string} line
+ * @returns
+ */
+function getFields (line) {
+    /** @type {string[]} */
+    const out = [];
+
+    let quoteFlag = false;
+    let start = 0;
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+
+        if (c === `"`) {
+            quoteFlag = !quoteFlag;
+        } else if (c === ",") {
+            if (!quoteFlag) {
+                out.push(line.substring(start, i).replace(/^"|"$/g, ""));
+                start = i + 1;
+            }
+        } else if (i === line.length - 1) {
+            out.push(line.substring(start).replace(/^"|"$/g, ""));
+        }
+    }
+
+    return out;
 }
 
 async function fetchBoundaries () {
@@ -159,13 +197,13 @@ function runAreaCentreBatch () {
                     const points = geometry.coordinates[0];
                     // All geojson areas are upside down so we need to negate the area.
                     $area = -getArea(points);
-                    [$latitude, $longitude] = getCentre(points);
+                    [$longitude, $latitude] = getCentre(points);
                 } else if (geometry.type === "MultiPolygon") {
                     const groupsOfPoints = geometry.coordinates[0];
                     // All geojson areas are upside down so we need to negate the area.
                     $area = -groupsOfPoints.map(getArea).reduce((a, b) => a + b, 0);
                     // Just use outer polygon for centre calculation
-                    [$latitude, $longitude] = getCentre(groupsOfPoints[0]);
+                    [$longitude, $latitude] = getCentre(groupsOfPoints[0]);
                 } else {
                     console.warn("Unknown geometry type: " + geometry.type);
                     return;
@@ -178,7 +216,7 @@ function runAreaCentreBatch () {
 }
 
 function generateJSON () {
-    db.all("SELECT id, name, ROUND(latitude, 4) AS latitude, ROUND(longitude, 4) AS longitude FROM built_up_areas", (error, rows) => {
+    db.all("SELECT id, name, ROUND(latitude, 4) AS lat, ROUND(longitude, 4) AS lon, population AS pop FROM built_up_areas AS b JOIN census AS c ON b.id = c.bua_id", (error, rows) => {
         if (error) {
             console.error(error);
             return;

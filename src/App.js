@@ -8,6 +8,8 @@ import useSavedState from './useSavedState';
 import { Tier } from './Tier';
 import { Plural } from './Plural';
 import { TierControls } from './TierControls';
+import { PopulationInspector } from './PopulationInspector';
+import { fetchPlaces } from './overpass';
 
 const Map = ReactMapboxGl({
   accessToken:
@@ -33,6 +35,8 @@ function App() {
   const [ error, setError ] = useState(null);
   const [ mapLoaded, setMapLoaded ] = useState(false);
 
+  const [ showPopulationInspectModal, setShowPopulationInspectModal ] = useState(false);
+
   const [ showT1Nodes, setShowT1Nodes ] = useSavedState("POPMESH_NODES_T1", true, false);
   const [ showT1Vertices, setShowT1Vertices ] = useSavedState("POPMESH_VERTICES_T1", true, false);
   const [ maxT1VertexLength, setMaxT1VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T1", 105000, false);
@@ -56,7 +60,10 @@ function App() {
 
   function loadData () {
     if (mapRef.current) {
-      fetchPlaces(mapRef.current.getBounds().toArray().flat())
+      const bounds = mapRef.current.getBounds().toArray().flat();
+      const options = { population: true, place: ["city", "town", "village"] };
+
+      fetchPlaces(bounds, options)
         .then(d => {
           setPlaces(d.elements);
           setError(null);
@@ -65,6 +72,22 @@ function App() {
       setLoading(true);
     }
   }
+
+  // Set up keyboard listener for population inspector
+  useEffect(() => {
+    /**
+     * @param {KeyboardEvent} e
+     */
+    function cb (e) {
+      if (e.key === "p" && e.altKey) {
+        setShowPopulationInspectModal(v => !v);
+      }
+    }
+
+    document.addEventListener("keydown", cb);
+
+    return () => document.removeEventListener("keydown", cb);
+  });
 
   const havePlaces = places.length > 0;
 
@@ -239,6 +262,7 @@ function App() {
         <ZoomControl />
         <ScaleControl />
       </Map>
+      { showPopulationInspectModal && <PopulationInspector bounds={mapRef.current.getBounds().toArray().flat()} /> }
     </div>
   );
 }
@@ -261,49 +285,6 @@ function useDebouncedCallback (callback, timeout = 1000) {
       setTimeout(() => readyRef.current = true, timeout);
     }
   }, [callback, timeout]);
-}
-
-/**
- * @param {number[]} bounds
- */
-function fetchPlaces (bounds) {
-  const bbox = bounds.map(b => b.toFixed(3)).join(",");
-  const sanityLimit = 10000;
-  const url = `https://overpass-api.de/api/interpreter?data=[out:json][bbox];node[population][place~"^city|town|village$"];out ${sanityLimit};&bbox=${bbox}`;
-  return cachedFetch(url);
-}
-
-/*
- * Version 1 Cache
- */
-// const cache = {};
-// function cachedFetch (url) {
-//   if (!cache[url]) {
-//     cache[url] = fetch(url).then(r => r.ok ? r.json() : Promise.reject(r.text()));
-//   }
-
-//   return cache[url];
-// }
-
-/*
- * Version 2 attempts to prevent memory leaks
- */
-const cache = [];
-const cacheLimit = 10;
-function cachedFetch (url) {
-  let hit = cache.find(h => h.url === url);
-
-  if (!hit) {
-    hit = {
-      url,
-      result: fetch(url).then(r => r.ok ? r.json() : (r.status === 429 ? Promise.reject("Too many requests. Please wait a minute.") : Promise.reject("Error fetching data"))),
-    };
-
-    cache.unshift(hit);
-    cache.length = Math.min(cacheLimit, cache.length);
-  }
-
-  return hit.result;
 }
 
 function downloadFile (filename, data) {

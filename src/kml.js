@@ -1,7 +1,7 @@
 import { calculateDistance } from "./calc";
 
 /**
- * @typedef {import("./geoJSON").OverpassElement} OverpassElement
+ * @typedef {import("./overpass").OverpassElement} OverpassElement
  */
 
 export function generateKML (layers) {

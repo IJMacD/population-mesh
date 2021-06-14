@@ -1,5 +1,5 @@
 
-const tierColours = ['#00FFFF', '#029ACF', '#007FFF', '#0000CC'];
+export const tierColours = ['#00FFFF', '#029ACF', '#007FFF', '#0000CC'];
 export function createCirclePaint(tier) {
   return {
     'circle-radius': {
@@ -28,14 +28,12 @@ export function createLinePaint(tier) {
     'line-color': tierColours[tier - 1],
   };
 }
+
+
 /**
- * @typedef OverpassElement
- * @property {number} id
- * @property {number} lat
- * @property {number} lon
- * @property {"node"|"way"|"relation"} type
- * @property {{ [key: string]: string }} tags
+ * @typedef {import("./overpass").OverpassElement} OverpassElement
  */
+
 /**
  *
  * @param {OverpassElement[]} places

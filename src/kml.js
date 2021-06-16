@@ -72,6 +72,30 @@ export function generateKML (layers) {
                 <width>2</width>
             </LineStyle>
         </Style>
+        <Style id="tier1_shapes">
+            <PolyStyle>
+                <color>ffffff00</color>
+                <outline>0</outline>
+            </PolyStyle>
+        </Style>
+        <Style id="tier2_shapes">
+            <PolyStyle>
+                <color>ffcf9a02</color>
+                <outline>0</outline>
+            </PolyStyle>
+        </Style>
+        <Style id="tier3_shapes">
+            <PolyStyle>
+                <color>ffff7f00</color>
+                <outline>0</outline>
+            </PolyStyle>
+        </Style>
+        <Style id="tier4_shapes">
+            <PolyStyle>
+                <color>ffcc0000</color>
+                <outline>0</outline>
+            </PolyStyle>
+        </Style>
         ${layers.map(layer => generateFolder(layer)).join("")}
     </Document>
 </kml>`;
@@ -83,6 +107,7 @@ export function generateKML (layers) {
  *  label: string,
  *  points?: OverpassElement[],
  *  lines?: [OverpassElement, OverpassElement][],
+ *  shapes?: import("./geoJSON").GeoJSONFeature[],
  *  style: string
  * }} layer
  */
@@ -92,6 +117,7 @@ function generateFolder (layer) {
         <name>${layer.label}</name>
         ${layer.points ? layer.points.map(p => generatePointPlacemark(p, layer.style)).join("") : ""}
         ${layer.lines ? layer.lines.map(l => generateLineStringPlacemark(l, layer.style)).join("") : ""}
+        ${layer.shapes ? layer.shapes.map(s => generatePolygonPlacemark(s, layer.style)).join("") : ""}
     </Folder>`;
 }
 
@@ -126,5 +152,53 @@ function generateLineStringPlacemark ([ p1, p2 ], style) {
                     ${p2.lon},${p2.lat},0
                 </coordinates>
             </LineString>
+        </Placemark>`;
+}
+
+/**
+ * @param {import("./geoJSON").GeoJSONFeature} geoJSON
+ * @param {string} style
+ */
+function generatePolygonPlacemark (geoJSON, style) {
+    let geometry = "";
+
+    if (geoJSON.geometry.type === "Polygon") {
+        const coords = geoJSON.geometry.coordinates[0];
+        geometry = `<Polygon>
+                        <outerBoundaryIs>
+                            <LinearRing>
+                                <coordinates>
+                                    ${coords.map(c => `${c[0]},${c[1]},0`).join(" ")}
+                                </coordinates>
+                            </LinearRing>
+                        </outerBoundaryIs>
+                    </Polygon>`;
+    } else if (geoJSON.geometry.type === "MultiPolygon") {
+        const outerCoords = geoJSON.geometry.coordinates[0][0];
+        const innerCoordsSet = geoJSON.geometry.coordinates[0].slice(1);
+        geometry = `<Polygon>
+            <outerBoundaryIs>
+                <LinearRing>
+                    <coordinates>
+                    ${outerCoords.map(c => `${c[0]},${c[1]},0`).join(" ")}
+                    </coordinates>
+                </LinearRing>
+            </outerBoundaryIs>
+            ${innerCoordsSet.map(coords => 
+            `<innerBoundaryIs>
+                <LinearRing>
+                    <coordinates>
+                        ${coords.map(c => `${c[0]},${c[1]},0`).join(" ")}
+                    </coordinates>
+                </LinearRing>
+            </innerBoundaryIs>`).join("")}
+        </Polygon>`;
+    }
+
+    return `
+        <Placemark>
+            <name>${geoJSON.properties.name}</name>
+            <styleUrl>#${style}</styleUrl>
+            ${geometry}
         </Placemark>`;
 }

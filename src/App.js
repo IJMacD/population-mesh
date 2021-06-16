@@ -10,7 +10,7 @@ import { Plural } from './Plural';
 import { TierControls } from './TierControls';
 import { PopulationInspector } from './PopulationInspector';
 import { fetchPlaces as fetchOverpassPlaces } from './overpass';
-import { fetchNomisPlaces } from './nomis';
+import { fetchNomisPlaces, useNomisShapes } from './nomis';
 
 const Map = ReactMapboxGl({
   accessToken:
@@ -48,18 +48,22 @@ function App() {
   const [ showT1Nodes, setShowT1Nodes ] = useSavedState("POPMESH_NODES_T1", true, false);
   const [ showT1Vertices, setShowT1Vertices ] = useSavedState("POPMESH_VERTICES_T1", true, false);
   const [ maxT1VertexLength, setMaxT1VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T1", 105000, false);
-
+  const [ showShapesT1, setShowShapesT1 ] = useSavedState("POPMESH_SHAPES_T1", false, false);
+  
   const [ showT2Nodes, setShowT2Nodes ] = useSavedState("POPMESH_NODES_T2", true, false);
   const [ showT2Vertices, setShowT2Vertices ] = useSavedState("POPMESH_VERTICES_T2", true, false);
   const [ maxT2VertexLength, setMaxT2VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T2", 100000, false);
-
+  const [ showShapesT2, setShowShapesT2 ] = useSavedState("POPMESH_SHAPES_T2", false, false);
+  
   const [ showT3Nodes, setShowT3Nodes ] = useSavedState("POPMESH_NODES_T3", true, false);
   const [ showT3Vertices, setShowT3Vertices ] = useSavedState("POPMESH_VERTICES_T3", true, false);
   const [ maxT3VertexLength, setMaxT3VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T3", 95000, false);
-
+  const [ showShapesT3, setShowShapesT3 ] = useSavedState("POPMESH_SHAPES_T3", false, false);
+  
   const [ showT4Nodes, setShowT4Nodes ] = useSavedState("POPMESH_NODES_T4", true, false);
   const [ showT4Vertices, setShowT4Vertices ] = useSavedState("POPMESH_VERTICES_T4", false, false);
   const [ maxT4VertexLength, setMaxT4VertexLength ] = useSavedState("POPMESH_VERTEX_LENGTH_T4", 90000, false);
+  const [ showShapesT4, setShowShapesT4 ] = useSavedState("POPMESH_SHAPES_T4", false, false);
 
   const [ narrowAngleLimit, setNarrowAngleLimit ] = useSavedState("POPMESH_NARROW_ANGLE", 15, false);
   const [ conurbationCollapse, setConurbationCollapse ] = useSavedState("POPMESH_CONURBATION_COLLAPSE", false, false);
@@ -165,13 +169,34 @@ function App() {
   const excludeConnectionsT4 = excludeHigherTiers ? [...connectorsT1, ...connectorsT2, ...connectorsT3] : [];
   let connectorsT4 = showT4Vertices ? prepareConnectors(cumlPlacesT4, maxT4VertexLength, narrowAngleLimit, excludeConnectionsT4) : [];
 
+  const shapesT1 = useNomisShapes(dataSourceID === "nomis" && showShapesT1 ? placesT1.map(p => p.id) : []);
+  const shapesT2 = useNomisShapes(dataSourceID === "nomis" && showShapesT2 ? placesT2.map(p => p.id) : []);
+  const shapesT3 = useNomisShapes(dataSourceID === "nomis" && showShapesT3 ? placesT3.map(p => p.id) : []);
+  const shapesT4 = useNomisShapes(dataSourceID === "nomis" && showShapesT4 ? placesT4.map(p => p.id) : []);
+
   function handleDownload () {
     const layers = [];
 
-    if (showT1Nodes) layers.push({ label: "100k+",      points: placesT1, style: "tier1_places" });
-    if (showT2Nodes) layers.push({ label: "50k - 100k", points: placesT2, style: "tier2_places" });
-    if (showT3Nodes) layers.push({ label: "10k - 50k",  points: placesT3, style: "tier3_places" });
-    if (showT4Nodes) layers.push({ label: "5k - 10k",   points: placesT4, style: "tier4_places" });
+    if (showShapesT1) {
+      layers.push({ label: "100k+",      shapes: shapesT1, style: "tier1_shapes" });
+    } else if (showT1Nodes) {
+      layers.push({ label: "100k+",      points: placesT1, style: "tier1_places" });
+    }
+    if (showShapesT2) {
+      layers.push({ label: "50k - 100k", shapes: shapesT2, style: "tier2_shapes" });
+    } else if (showT2Nodes) {
+      layers.push({ label: "50k - 100k", points: placesT2, style: "tier2_places" });
+    }
+    if (showShapesT3) {
+      layers.push({ label: "10k - 50k",  shapes: shapesT3, style: "tier3_shapes" });
+    } else if (showT3Nodes) {
+      layers.push({ label: "10k - 50k",  points: placesT3, style: "tier3_places" });
+    }
+    if (showShapesT4) {
+      layers.push({ label: "5k - 10k",   shapes: shapesT4, style: "tier4_shapes" });
+    } else if (showT4Nodes) {
+      layers.push({ label: "5k - 10k",   points: placesT4, style: "tier4_places" });
+    }
 
     if (showT1Vertices) layers.push({ label: "Connections 100k+",      lines: connectorsT1, style: "tier1_connectors" });
     if (showT2Vertices) layers.push({ label: "Connections 50k - 100k", lines: connectorsT2, style: "tier2_connectors" });
@@ -222,6 +247,8 @@ function App() {
           setShowVertices={setShowT1Vertices}
           maxVertexLength={maxT1VertexLength}
           setMaxVertexLength={setMaxT1VertexLength}
+          showShapes={showShapesT1}
+          setShowShapes={dataSourceID === "nomis" ? setShowShapesT1 : null}
         />
 
         <TierControls
@@ -234,6 +261,8 @@ function App() {
           setShowVertices={setShowT2Vertices}
           maxVertexLength={maxT2VertexLength}
           setMaxVertexLength={setMaxT2VertexLength}
+          showShapes={showShapesT2}
+          setShowShapes={dataSourceID === "nomis" ? setShowShapesT2 : null}
         />
 
         <TierControls
@@ -246,6 +275,8 @@ function App() {
           setShowVertices={setShowT3Vertices}
           maxVertexLength={maxT3VertexLength}
           setMaxVertexLength={setMaxT3VertexLength}
+          showShapes={showShapesT3}
+          setShowShapes={dataSourceID === "nomis" ? setShowShapesT3 : null}
         />
 
         <TierControls
@@ -258,6 +289,8 @@ function App() {
           setShowVertices={setShowT4Vertices}
           maxVertexLength={maxT4VertexLength}
           setMaxVertexLength={setMaxT4VertexLength}
+          showShapes={showShapesT4}
+          setShowShapes={dataSourceID === "nomis" ? setShowShapesT4 : null}
         />
 
         <h2>Options</h2>
@@ -283,10 +316,10 @@ function App() {
         center={initialCentre}
         zoom={initialZoom}
       >
-        <Tier places={showT1Nodes ? placesT1 : []} connectors={connectorsT1} tier={1} />
-        <Tier places={showT2Nodes ? placesT2 : []} connectors={connectorsT2} tier={2} />
-        <Tier places={showT3Nodes ? placesT3 : []} connectors={connectorsT3} tier={3} />
-        <Tier places={showT4Nodes ? placesT4 : []} connectors={connectorsT4} tier={4} />
+        <Tier places={showT1Nodes && !showShapesT1 ? placesT1 : []} connectors={connectorsT1} tier={1} shapes={shapesT1} />
+        <Tier places={showT2Nodes && !showShapesT2 ? placesT2 : []} connectors={connectorsT2} tier={2} shapes={shapesT2} />
+        <Tier places={showT3Nodes && !showShapesT3 ? placesT3 : []} connectors={connectorsT3} tier={3} shapes={shapesT3} />
+        <Tier places={showT4Nodes && !showShapesT4 ? placesT4 : []} connectors={connectorsT4} tier={4} shapes={shapesT4} />
         <ZoomControl />
         <ScaleControl />
       </Map>

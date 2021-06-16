@@ -16,6 +16,7 @@ export async function fetchNomisPlaces (bounds) {
         tags: {
             name: p.name,
             population: p.pop.toString(),
+            place: "built_up_area",
         },
     }));
 }

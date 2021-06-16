@@ -83,7 +83,7 @@ function App() {
     }
   }, [dataSourceID]);
 
-  useEffect(loadData, [loadData]);
+  useEffect(loadData, [mapLoaded, loadData]);
 
   const debounced = useDebouncedCallback(loadData, 5000);
 
@@ -95,6 +95,8 @@ function App() {
     function cb (e) {
       if (e.key === "p" && e.altKey) {
         setShowPopulationInspectModal(v => !v);
+      } else if (e.key === "Escape"){
+        setShowPopulationInspectModal(false);
       }
     }
 
@@ -180,6 +182,8 @@ function App() {
 
     downloadFile("places.kml", kml);
   }
+
+  const bounds = /** @type {[number,number,number,number]} */(mapRef.current?.getBounds().toArray().flat());
 
   return (
     <div className="App">
@@ -286,7 +290,7 @@ function App() {
         <ZoomControl />
         <ScaleControl />
       </Map>
-      { showPopulationInspectModal && <PopulationInspector bounds={mapRef.current.getBounds().toArray().flat()} /> }
+      { showPopulationInspectModal && <PopulationInspector bounds={bounds} sourceID={dataSourceID} /> }
     </div>
   );
 }

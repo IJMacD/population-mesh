@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { tierColours } from "./geoJSON";
+import { fetchNomisPlaces } from "./nomis";
 import { useOverpass } from "./overpass";
 import { useFetch } from "./useFetch";
 
@@ -8,10 +10,56 @@ const overpassOptions = {
 
 /**
  * @param {object} props
+ * @param {[number,number,number,number]} props.bounds
+ * @param {string} props.sourceID
+ */
+export function PopulationInspector ({ bounds, sourceID }) {
+    if (sourceID === "osm") {
+        return <OverpassPopulationInspector bounds={bounds} />
+    }
+
+    if (sourceID === "nomis") {
+        return <NomisPopulationInspector bounds={bounds} />
+    }
+
+    return null;
+}
+
+/**
+ * @param {object} props
  * @param {number[]} props.bounds
  */
-export function PopulationInspector ({ bounds }) {
+function OverpassPopulationInspector ({ bounds }) {
     const [ data, error, loading ] = useOverpass(bounds, overpassOptions);
+
+    return <PopulationInspectorContent data={data} error={error} loading={loading} />
+}
+
+/**
+ * @param {object} props
+ * @param {[number,number,number,number]} props.bounds
+ */
+function NomisPopulationInspector ({ bounds }) {
+    const [ data, setData ] = useState([]);
+    const [ error, setError ] = useState(null);
+    const [ loading, setLoading ] = useState(false);
+
+    useEffect(() => {
+        fetchNomisPlaces(bounds).then(setData, setError).then(() => setLoading(false));
+        setLoading(true);
+    // eslint-disable-next-line
+    }, bounds);
+
+    return <PopulationInspectorContent data={data} error={error} loading={loading} />
+}
+
+/**
+ * @param {object} props
+ * @param {OverpassElement[]} props.data
+ * @param {Error} props.error
+ * @param {boolean} props.loading
+ */
+function PopulationInspectorContent ({ data, error, loading }) {
 
     data.sort(placeTypeComparator);
 
@@ -96,14 +144,14 @@ export function PopulationInspector ({ bounds }) {
  * @param {OverpassElement} b
  */
 function placeTypeComparator (a, b) {
-    const result = {
+    const result = ({
         city:       { city: 0, town: -1, village: -1 },
         town:       { city: 1, town:  0, village: -1 },
         village:    { city: 1, town:  1, village:  0 },
-    }[a.tags.place][b.tags.place];
+    }[a.tags.place]||{})[b.tags.place];
 
     if (result === 0) {
-        return a.tags.name.localeCompare(b.tags.name);
+        return String(a.tags.name).localeCompare(b.tags.name);
     }
 
     return result;

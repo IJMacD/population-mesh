@@ -32,7 +32,7 @@ export function PopulationInspector ({ bounds, sourceID }) {
 function OverpassPopulationInspector ({ bounds }) {
     const [ data, error, loading ] = useOverpass(bounds, overpassOptions);
 
-    return <PopulationInspectorContent data={data} error={error} loading={loading} />
+    return <PopulationInspectorContent data={data} error={error} loading={loading} sourceID="osm" />
 }
 
 /**
@@ -50,7 +50,7 @@ function NomisPopulationInspector ({ bounds }) {
     // eslint-disable-next-line
     }, bounds);
 
-    return <PopulationInspectorContent data={data} error={error} loading={loading} />
+    return <PopulationInspectorContent data={data} error={error} loading={loading} sourceID="nomis" />
 }
 
 /**
@@ -58,8 +58,9 @@ function NomisPopulationInspector ({ bounds }) {
  * @param {OverpassElement[]} props.data
  * @param {Error} props.error
  * @param {boolean} props.loading
+ * @param {string} props.sourceID
  */
-function PopulationInspectorContent ({ data, error, loading }) {
+function PopulationInspectorContent ({ data, error, loading, sourceID }) {
 
     data.sort(placeTypeComparator);
 
@@ -115,7 +116,7 @@ function PopulationInspectorContent ({ data, error, loading }) {
                                     <td>
                                         <a href={`https://www.openstreetmap.org/#map=12/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Map</a>{' '}
                                         <a href={`https://www.openstreetmap.org/edit#map=20/${place.lat}/${place.lon}`} target="_blank" rel="noreferrer">Edit</a>{' '}
-                                        <a href={`https://www.openstreetmap.org/node/${place.id}`} target="_blank" rel="noreferrer">View</a>{' '}
+                                        { sourceID === "osm" && <a href={`https://www.openstreetmap.org/node/${place.id}`} target="_blank" rel="noreferrer">View</a> }{' '}
                                         <a href={`https://en.wikipedia.org/wiki/${place.tags.name}`} target="_blank" rel="noreferrer">Wikipedia</a>{' '}
                                         { place.tags.wikidata && <a href={`https://www.wikidata.org/wiki/${place.tags.wikidata}`} target="_blank" rel="noreferrer">Wikidata</a> }
                                     </td>
